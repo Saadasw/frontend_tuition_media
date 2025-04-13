@@ -35,24 +35,8 @@ export default function SignupPage() {
        e.preventDefault();
        await authApi.signup(email, password);
           // Prepare the form data for submission
-    const formData = new URLSearchParams();
-    formData.append('username', email);
-    formData.append('password', password);
-
-    // Post login request to FastAPI
-    const response = await axios.post(
-      'http://127.0.0.1:8000/login', 
-      formData,
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',  // Sending form data
-        },
-      }
-    );
-      
-      // Store the token
-      localStorage.setItem('token', response.data.access_token);
-      router.push('/dashboard');
+    
+      router.push('/login');
     
   };
 

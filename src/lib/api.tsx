@@ -50,10 +50,22 @@ export const fetchCirculars = async () => {
       api.post('/login', { email, password }),
   };
   
-  // Circulars API
-  export const circularsApi = {
+  // Add auth token to requests
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+
+  export const circularApi = {
+    create: (title: string, description?: string) => 
+      api.post('/circulars', { title, description }),
+    
     getAll: () => api.get('/circulars'),
-    create: (title: string) => api.post('/circulars', { title }),
+    
     getById: (id: number) => api.get(`/circulars/${id}`),
   };
   

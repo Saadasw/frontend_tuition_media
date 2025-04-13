@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-
+import axios from 'axios'
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -15,24 +15,24 @@ export default function LoginPage() {
     setError(null)
 
     try {
-      const formData = new FormData()
-      formData.append('username', email) // FastAPI expects 'username' field
-      formData.append('password', password)
-
-      const response = await fetch('http://127.0.0.1:8000/login', {
-        method: 'POST',
-        body: formData,
-        // Content-Type will be automatically set to multipart/form-data
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Login failed')
-      }
-
-      const data = await response.json()
-      localStorage.setItem('token', data.access_token)
-      router.push('/dashboard')
+      const formData = new URLSearchParams();
+      formData.append('username', email);
+      formData.append('password', password);
+  
+      // Post login request to FastAPI
+      const response = await axios.post(
+        'http://127.0.0.1:8000/login', 
+        formData,
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',  // Sending form data
+          },
+        }
+      );
+        
+        // Store the token
+        localStorage.setItem('token', response.data.access_token);
+        router.push('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred')
     } finally {
