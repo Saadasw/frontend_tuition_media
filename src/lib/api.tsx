@@ -11,6 +11,13 @@ export const fetchCirculars = async () => {
 */
   import axios from 'axios';
 
+  export interface Circular {
+    id: number;
+    title: string;
+    description?: string;
+    user_email: string;
+    //created_at: string;
+  }
   // Configure axios instance
   const api = axios.create({
     baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000',

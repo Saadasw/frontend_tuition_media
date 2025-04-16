@@ -16,8 +16,10 @@ export default function NewCircularPage() {
       //const { data } = await circularApi.create(title, description);
       
       await circularApi.create(title, description);
+      router.push('/dashboard');
       const  data  = await circularApi.getAll();
       console.log(data.data);
+      
       
       //router.push(`/circulars/${data.id}`);
     } catch (err) {

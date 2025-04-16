@@ -24,14 +24,16 @@ export default function CircularCard({ circular }: { circular: Circular }) {
   )
 }*/
 // components/circulars/CircularCard.tsx
-import { Circular } from '@/lib/api'
-import Link from 'next/link'
+import { Circular } from '@/lib/api';
+import Link from 'next/link';
+import PlaceBidButton from '../bids/placeBidButton';
 
 interface Props {
-  circular: Circular
+  circular: Circular;
+  onBidPlaced?: () => void;
 }
 
-export default function CircularCard({ circular }: Props) {
+export default function CircularCard({ circular, onBidPlaced }: Props) {
   return (
     <div className="p-4 border rounded-lg shadow-sm hover:shadow-md transition-shadow">
       <h3 className="text-lg font-semibold">{circular.title}</h3>
@@ -47,6 +49,13 @@ export default function CircularCard({ circular }: Props) {
           View Details
         </Link>
       </div>
+      
+      <div className="mt-4 border-t pt-4">
+        <PlaceBidButton 
+          circularId={circular.id}
+          onBidPlaced={onBidPlaced}
+        />
+      </div>
     </div>
-  )
+  );
 }
