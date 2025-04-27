@@ -1,0 +1,938 @@
+<html lang="en" class="darkentext"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Letter Swap Game</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+        background-color: #f0f0f0;
+        position: relative;
+        overflow: hidden;
+      }
+      .game-container {
+        background-color: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        text-align: center;
+        z-index: 1;
+        width: 90%;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      @media (max-width: 480px) {
+        .game-container {
+          padding: 15px 10px;
+          width: 95%;
+        }
+      }
+      #user-string {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin: 20px 0;
+        min-height: 50px;
+        position: relative;
+      }
+      .letter {
+        display: inline-block;
+        width: calc(8% - 4px);
+        min-width: 30px;
+        max-width: 40px;
+        height: 40px;
+        line-height: 40px;
+        text-align: center;
+        margin: 0 2px 6px;
+        background-color: #e0e0e0;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+        transition: transform 0.3s, background-color 0.3s;
+        position: relative;
+        touch-action: none; /* Prevent browser handling of touch events */
+        user-select: none; /* Prevent text selection during drag */
+      }
+      @media (max-width: 480px) {
+        .letter {
+          width: calc(10% - 4px);
+          min-width: 24px;
+          height: 34px;
+          line-height: 34px;
+          font-size: 14px;
+        }
+      }
+      @media (max-width: 320px) {
+        .letter {
+          width: calc(12.5% - 4px);
+          min-width: 20px;
+          height: 30px;
+          line-height: 30px;
+          font-size: 12px;
+        }
+      }
+      .letter.selected {
+        background-color: #ffd700;
+        transform: scale(1.1);
+      }
+      .letter.swapping {
+        z-index: 10;
+      }
+      .letter.dragging {
+        opacity: 0.6;
+        z-index: 100;
+        pointer-events: none;
+      }
+      .drag-letter {
+        position: absolute;
+        width: 34px;
+        height: 34px;
+        line-height: 34px;
+        text-align: center;
+        background-color: #ffd700;
+        border-radius: 5px;
+        font-size: 16px;
+        font-weight: bold;
+        z-index: 1000;
+        pointer-events: none;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        transform: translate(-50%, -50%);
+        transition: none;
+      }
+      @media (max-width: 480px) {
+        .drag-letter {
+          width: 28px;
+          height: 28px;
+          line-height: 28px;
+          font-size: 14px;
+        }
+      }
+      @media (max-width: 320px) {
+        .drag-letter {
+          width: 24px;
+          height: 24px;
+          line-height: 24px;
+          font-size: 12px;
+        }
+      }
+      
+      /* Target string - hidden cards */
+      #target-string {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin: 20px 0;
+        min-height: 50px;
+        position: relative;
+      }
+      .card {
+        display: inline-block;
+        width: calc(8% - 4px);
+        min-width: 30px;
+        max-width: 40px;
+        height: 40px;
+        margin: 0 2px 6px;
+        position: relative;
+        perspective: 1000px;
+        cursor: default;
+      }
+      @media (max-width: 480px) {
+        .card {
+          width: calc(10% - 4px);
+          min-width: 24px;
+          height: 34px;
+        }
+      }
+      @media (max-width: 320px) {
+        .card {
+          width: calc(12.5% - 4px);
+          min-width: 20px;
+          height: 30px;
+        }
+      }
+      .card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+      }
+      .card.flipped .card-inner {
+        transform: rotateY(180deg);
+      }
+      .card-front, .card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        backface-visibility: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 5px;
+        font-size: 18px;
+        font-weight: bold;
+      }
+      .card-front {
+        background-color: #3498db;
+        color: white;
+      }
+      .card-back {
+        background-color: #2ecc71;
+        color: white;
+        transform: rotateY(180deg);
+      }
+      
+      .stats {
+        margin: 20px 0;
+        font-size: 18px;
+        position: relative;
+      }
+      #correct-count {
+        display: inline-block;
+        font-weight: bold;
+        font-size: 24px;
+        min-width: 30px;
+        color: #2ecc71;
+        transition: transform 0.5s, color 0.5s;
+      }
+      .count-animation {
+        animation: pulse 0.5s ease-in-out;
+      }
+      @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.5); }
+        100% { transform: scale(1); }
+      }
+      #new-game {
+        padding: 10px 20px;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+      #new-game:hover {
+        background-color: #45a049;
+      }
+      .win-message {
+        color: #4CAF50;
+        font-size: 24px;
+        font-weight: bold;
+        margin-top: 20px;
+        display: none;
+      }
+      @media (max-width: 480px) {
+        h1 {
+          font-size: 20px;
+        }
+        p {
+          font-size: 14px;
+          margin: 0 0 15px;
+        }
+        .win-message {
+          font-size: 20px;
+        }
+      }
+      
+      /* Emotion containers */
+      #emotion-container {
+        position: absolute;
+        top: 15px;
+        left: 50%;
+        transform: translateX(-50%);
+        height: 40px;
+        width: 100%;
+        text-align: center;
+        z-index: 2;
+        pointer-events: none;
+      }
+      
+      /* Sad emotions */
+      .sad-emoji {
+        position: absolute;
+        font-size: 30px;
+        opacity: 0;
+        top: 0;
+        left: 50%;
+        animation: fall-and-fade 2s forwards;
+      }
+      @keyframes fall-and-fade {
+        0% { transform: translateY(0) translateX(-50%); opacity: 1; }
+        100% { transform: translateY(50px) translateX(-50%); opacity: 0; }
+      }
+      
+      /* Very sad emotions */
+      .very-sad-emoji {
+        position: absolute;
+        font-size: 40px;
+        opacity: 0;
+        top: 0;
+        left: 50%;
+        animation: shake-and-fade 2.5s forwards;
+      }
+      @keyframes shake-and-fade {
+        0% { transform: translateY(0) translateX(-50%) rotate(0deg); opacity: 1; }
+        10% { transform: translateY(5px) translateX(calc(-50% + 5px)) rotate(5deg); }
+        20% { transform: translateY(10px) translateX(calc(-50% - 5px)) rotate(-5deg); }
+        30% { transform: translateY(15px) translateX(-50%) rotate(5deg); }
+        40% { transform: translateY(20px) translateX(calc(-50% + 5px)) rotate(-5deg); }
+        50% { transform: translateY(25px) translateX(calc(-50% - 5px)) rotate(5deg); }
+        100% { transform: translateY(70px) translateX(-50%) rotate(0); opacity: 0; }
+      }
+      
+      /* Happy emotions */
+      .happy-explosion {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        z-index: 5;
+        animation: explode 1.5s ease-out forwards;
+      }
+      @keyframes explode {
+        0% { 
+          transform: translateX(-50%) scale(0.1); 
+          opacity: 0;
+          box-shadow: 0 0 0 0px rgba(255, 188, 66, 0.5);
+        }
+        30% { 
+          transform: translateX(-50%) scale(1); 
+          opacity: 1;
+          box-shadow: 0 0 0 10px rgba(255, 188, 66, 0.3);
+        }
+        100% { 
+          transform: translateX(-50%) scale(2); 
+          opacity: 0;
+          box-shadow: 0 0 0 30px rgba(255, 188, 66, 0);
+        }
+      }
+      
+      /* Very happy emotions */
+      .happy-burst {
+        position: absolute;
+        width: 100%;
+        height: 100px;
+        top: 0;
+        left: 0;
+      }
+      .happy-particle {
+        position: absolute;
+        width: 15px;
+        height: 15px;
+        border-radius: 50%;
+        opacity: 0;
+        animation: burst 2s ease-out forwards;
+      }
+      @keyframes burst {
+        0% { 
+          transform: translate(0, 0) scale(0); 
+          opacity: 1;
+        }
+        100% { 
+          transform: translate(var(--tx), var(--ty)) scale(1); 
+          opacity: 0;
+        }
+      }
+      
+      /* Fireworks */
+      .firework {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        box-shadow: 0 0 0 4px rgba(255, 235, 59, 0.6),
+                    0 0 0 8px rgba(255, 152, 0, 0.6),
+                    0 0 0 12px rgba(244, 67, 54, 0.6);
+        animation: firework-animation 0.8s ease-out forwards;
+      }
+      
+      @keyframes firework-animation {
+        0% {
+          width: 5px;
+          height: 5px;
+          opacity: 1;
+        }
+        100% {
+          width: 100px;
+          height: 100px;
+          opacity: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="game-container">
+      <h1>Letter Swap Game</h1>
+      <p>Swap letters to match the hidden string. The number shows how many letters are correctly positioned.</p>
+      <div class="stats">
+        Correct positions: <span id="correct-count">0</span>/<span id="total-count">7</span>
+      </div>
+      <div id="emotion-container"></div>
+      <div id="user-string"><div class="letter" data-index="0">T</div><div class="letter" data-index="1">J</div><div class="letter" data-index="2">P</div><div class="letter" data-index="3">C</div><div class="letter" data-index="4">O</div><div class="letter" data-index="5">A</div><div class="letter" data-index="6">K</div></div>
+      <div id="target-string"><div class="card" data-index="0"><div class="card-inner"><div class="card-front">?</div><div class="card-back">J</div></div></div><div class="card" data-index="1"><div class="card-inner"><div class="card-front">?</div><div class="card-back">A</div></div></div><div class="card" data-index="2"><div class="card-inner"><div class="card-front">?</div><div class="card-back">C</div></div></div><div class="card" data-index="3"><div class="card-inner"><div class="card-front">?</div><div class="card-back">K</div></div></div><div class="card" data-index="4"><div class="card-inner"><div class="card-front">?</div><div class="card-back">P</div></div></div><div class="card" data-index="5"><div class="card-inner"><div class="card-front">?</div><div class="card-back">O</div></div></div><div class="card" data-index="6"><div class="card-inner"><div class="card-front">?</div><div class="card-back">T</div></div></div></div>
+      <button id="new-game">Reset</button>
+      <div id="win-message" class="win-message" style="display: none;">Congratulations! You Won!</div>
+    </div>
+  
+    <script>
+      let targetString = '';
+      let currentString = '';
+      let firstSelected = null;
+      let words = [
+        'XYLOPHONE', 'QUIZZICAL', 'JINXED', 'WHIZZING', 
+        'VAPORIZED', 'JACKPOT', 'FLAPJACK', 'BUZZKILL',
+        'ZIGZAG', 'JUKEBOX', 'SPHINX', 'NOWADAYS',
+        'QUIXOTIC', 'FRAZZLED', 'WHIMSY', 'ZEPHYR'
+      ];
+  
+      function getRandomWord() {
+        // On mobile devices, choose shorter words to ensure better fit
+        if (window.innerWidth <= 480) {
+          const shorterWords = words.filter(word => word.length <= 8);
+          if (shorterWords.length > 0) {
+            return shorterWords[Math.floor(Math.random() * shorterWords.length)];
+          }
+        }
+        return words[Math.floor(Math.random() * words.length)];
+      }
+  
+      function shuffleString(str) {
+        let array = str.split('');
+        let shuffled;
+        
+        // Keep shuffling until we get a different arrangement
+        do {
+          shuffled = [...array];
+          for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+          }
+        } while (str === shuffled.join(''));
+        
+        return shuffled.join('');
+      }
+  
+      function countCorrectPositions() {
+        let count = 0;
+        for (let i = 0; i < targetString.length; i++) {
+          if (currentString[i] === targetString[i]) {
+            count++;
+          }
+        }
+        return count;
+      }
+  
+      function updateDisplay() {
+        // Update user string
+        const userStringDiv = document.getElementById('user-string');
+        userStringDiv.innerHTML = '';
+        
+        for (let i = 0; i < currentString.length; i++) {
+          const letterDiv = document.createElement('div');
+          letterDiv.className = 'letter';
+          letterDiv.textContent = currentString[i];
+          letterDiv.dataset.index = i;
+          
+          // Add drag and drop event listeners
+          setupDragAndDrop(letterDiv);
+          
+          userStringDiv.appendChild(letterDiv);
+        }
+        
+        // Update target string cards if empty
+        const targetStringDiv = document.getElementById('target-string');
+        if (targetStringDiv.children.length === 0) {
+          createTargetCards();
+        }
+        
+        const correctCount = countCorrectPositions();
+        document.getElementById('correct-count').textContent = correctCount;
+        document.getElementById('total-count').textContent = targetString.length;
+        
+        // Check win condition
+        if (correctCount === targetString.length) {
+          document.getElementById('win-message').style.display = 'block';
+          flipAllCards();
+          createFireworks();
+        } else {
+          document.getElementById('win-message').style.display = 'none';
+        }
+      }
+      
+      function createTargetCards() {
+        const targetStringDiv = document.getElementById('target-string');
+        targetStringDiv.innerHTML = '';
+        
+        for (let i = 0; i < targetString.length; i++) {
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.dataset.index = i;
+          
+          const cardInner = document.createElement('div');
+          cardInner.className = 'card-inner';
+          
+          const cardFront = document.createElement('div');
+          cardFront.className = 'card-front';
+          cardFront.textContent = '?';
+          
+          const cardBack = document.createElement('div');
+          cardBack.className = 'card-back';
+          cardBack.textContent = targetString[i];
+          
+          cardInner.appendChild(cardFront);
+          cardInner.appendChild(cardBack);
+          card.appendChild(cardInner);
+          
+          targetStringDiv.appendChild(card);
+        }
+      }
+      
+      function flipAllCards() {
+        const cards = document.querySelectorAll('.card');
+        
+        // Stagger the card flips for a nice effect
+        cards.forEach((card, index) => {
+          setTimeout(() => {
+            card.classList.add('flipped');
+          }, index * 200);
+        });
+      }
+      
+      function createFireworks() {
+        // Create multiple fireworks
+        for (let i = 0; i < 15; i++) {
+          setTimeout(() => {
+            const firework = document.createElement('div');
+            firework.className = 'firework';
+            
+            // Random position
+            const randomX = Math.random() * window.innerWidth;
+            const randomY = Math.random() * window.innerHeight;
+            
+            firework.style.left = `${randomX}px`;
+            firework.style.top = `${randomY}px`;
+            firework.style.transform = 'translate(0, 0)';
+            
+            // Random color
+            const colors = ['#FF5252', '#FF4081', '#E040FB', '#7C4DFF', '#536DFE', '#448AFF', '#40C4FF', '#18FFFF', '#64FFDA', '#69F0AE', '#B2FF59', '#EEFF41', '#FFFF00', '#FFD740', '#FFAB40', '#FF6E40'];
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            
+            firework.style.boxShadow = `0 0 0 4px ${randomColor}88,
+                                       0 0 0 8px ${randomColor}66,
+                                       0 0 0 12px ${randomColor}44`;
+            
+            document.body.appendChild(firework);
+            
+            // Remove after animation completes
+            setTimeout(() => {
+              firework.remove();
+            }, 800);
+          }, i * 200); // Stagger fireworks
+        }
+      }
+  
+      let previousWrongCount = 0;
+      
+      function showEmotion(type, count) {
+        const container = document.getElementById('emotion-container');
+        
+        if (type === 'sad') {
+          const emoji = document.createElement('div');
+          emoji.className = 'sad-emoji';
+          emoji.textContent = '😞';
+          emoji.style.left = '50%';
+          container.appendChild(emoji);
+          
+          setTimeout(() => emoji.remove(), 2000);
+        } 
+        else if (type === 'very-sad') {
+          const emoji = document.createElement('div');
+          emoji.className = 'very-sad-emoji';
+          emoji.textContent = '😭';
+          emoji.style.left = '50%';
+          container.appendChild(emoji);
+          
+          setTimeout(() => emoji.remove(), 2500);
+        } 
+        else if (type === 'happy') {
+          const explosion = document.createElement('div');
+          explosion.className = 'happy-explosion';
+          explosion.style.backgroundColor = '#FFD700';
+          container.appendChild(explosion);
+          
+          setTimeout(() => explosion.remove(), 1500);
+        } 
+        else if (type === 'very-happy') {
+          const burst = document.createElement('div');
+          burst.className = 'happy-burst';
+          container.appendChild(burst);
+          
+          const colors = ['#FF5252', '#FF4081', '#E040FB', '#7C4DFF', '#536DFE', '#448AFF', '#40C4FF'];
+          
+          for (let i = 0; i < 20; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'happy-particle';
+            
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 50 + Math.random() * 100;
+            const tx = Math.cos(angle) * distance;
+            const ty = Math.sin(angle) * distance;
+            
+            particle.style.setProperty('--tx', `${tx}px`);
+            particle.style.setProperty('--ty', `${ty}px`);
+            particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            particle.style.top = '10px';
+            particle.style.left = '50%';
+            
+            burst.appendChild(particle);
+          }
+          
+          setTimeout(() => burst.remove(), 2000);
+        }
+      }
+  
+      function animateCounterChange(newCount) {
+        const countElement = document.getElementById('correct-count');
+        const diff = newCount - previousWrongCount;
+        
+        // Animate number
+        countElement.classList.add('count-animation');
+        setTimeout(() => {
+          countElement.classList.remove('count-animation');
+        }, 500);
+        
+        // Show emotions based on count difference
+        if (diff === -1) {
+          showEmotion('sad', 1);
+        } else if (diff <= -2) {
+          showEmotion('very-sad', Math.abs(diff));
+        } else if (diff === 1) {
+          showEmotion('happy', 1);
+        } else if (diff >= 2) {
+          showEmotion('very-happy', diff);
+        }
+        
+        // Update previous count
+        previousWrongCount = newCount;
+      }
+  
+      // Variables for drag and drop
+      let isDragging = false;
+      let draggedElement = null;
+      let dragElement = null;
+      let startX, startY;
+      let dragIndex;
+  
+      function setupDragAndDrop(element) {
+        // Setup mouse events in a way that doesn't conflict with click
+        let dragStarted = false;
+        
+        element.addEventListener('mousedown', function(e) {
+          // Store the initial position for later comparison
+          const initialX = e.clientX;
+          const initialY = e.clientY;
+          
+          // Create a flag to track if drag or click
+          dragStarted = false;
+          
+          // Add a mousemove listener to detect drag
+          const moveHandler = function(moveEvent) {
+            // If moved more than 5px, it's a drag not a click
+            if (!dragStarted && 
+                (Math.abs(moveEvent.clientX - initialX) > 5 || 
+                 Math.abs(moveEvent.clientY - initialY) > 5)) {
+              dragStarted = true;
+              startDrag(e);
+            }
+          };
+          
+          // Add an up listener to detect click
+          const upHandler = function() {
+            document.removeEventListener('mousemove', moveHandler);
+            document.removeEventListener('mouseup', upHandler);
+            
+            // If drag didn't start, it was a click
+            if (!dragStarted) {
+              handleLetterClick(e);
+            }
+          };
+          
+          document.addEventListener('mousemove', moveHandler);
+          document.addEventListener('mouseup', upHandler);
+        });
+        
+        // Setup touch events for dragging
+        element.addEventListener('touchstart', handleTouchStart, { passive: false });
+        element.addEventListener('touchmove', handleTouchMove, { passive: false });
+        element.addEventListener('touchend', handleTouchEnd);
+      }
+      
+      let touchStartX, touchStartY, touchStartTime;
+      
+      function handleTouchStart(e) {
+        // Prevent default behavior like scrolling
+        e.preventDefault();
+        const touch = e.touches[0];
+        
+        // Store initial touch position and time
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+        touchStartTime = new Date().getTime();
+        // We'll decide in touchMove or touchEnd if it's a tap or drag
+      }
+      
+      function handleTouchMove(e) {
+        e.preventDefault();
+        
+        // Check if we should start dragging (user moved finger enough)
+        if (!isDragging) {
+          const touch = e.touches[0];
+          // If finger moved far enough, it's a drag, not a tap
+          if (Math.abs(touch.clientX - touchStartX) > 5 || Math.abs(touch.clientY - touchStartY) > 5) {
+            // Start dragging
+            startDrag({
+              clientX: touch.clientX,
+              clientY: touch.clientY,
+              target: e.target
+            });
+          }
+          return;
+        }
+        
+        const touch = e.touches[0];
+        moveDragElement(touch.clientX, touch.clientY);
+      }
+      
+      function handleTouchEnd(e) {
+        e.preventDefault();
+        
+        // Check if it was a quick tap (less than 200ms and no significant movement)
+        const touchEndTime = new Date().getTime();
+        const touchDuration = touchEndTime - touchStartTime;
+        
+        // If it was a short tap and not a drag, handle as a click
+        if (!isDragging && touchDuration < 200) {
+          handleLetterClick({
+            target: e.target
+          });
+          return;
+        }
+        
+        // Otherwise, handle as the end of a drag
+        if (isDragging) {
+          endDrag({
+            clientX: e.changedTouches[0].clientX,
+            clientY: e.changedTouches[0].clientY
+          });
+        }
+      }
+  
+      function startDrag(e) {
+        // Don't start drag if it was just a click for selection or if already dragging
+        if (isDragging) return;
+        
+        // Store starting positions immediately
+        startX = e.clientX;
+        startY = e.clientY;
+        
+        // Set the dragged element
+        draggedElement = e.target;
+        dragIndex = parseInt(draggedElement.dataset.index);
+        
+        // Create a visual clone for dragging immediately
+        dragElement = document.createElement('div');
+        dragElement.className = 'drag-letter';
+        dragElement.textContent = draggedElement.textContent;
+        dragElement.style.left = startX + 'px';
+        dragElement.style.top = startY + 'px';
+        document.body.appendChild(dragElement);
+        
+        // Add dragging class to original element
+        draggedElement.classList.add('dragging');
+        
+        // Add mouse move and mouse up listeners to document
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+        
+        isDragging = true;
+        
+        // Prevent default behavior to ensure drag works properly
+        e.preventDefault();
+      }
+      
+      function handleMouseMove(e) {
+        if (!isDragging) return;
+        moveDragElement(e.clientX, e.clientY);
+      }
+      
+      function moveDragElement(x, y) {
+        if (dragElement) {
+          dragElement.style.left = x + 'px';
+          dragElement.style.top = y + 'px';
+        }
+      }
+      
+      function handleMouseUp(e) {
+        endDrag(e);
+      }
+      
+      function endDrag(e) {
+        if (!isDragging) return;
+        
+        // Find out if we're hovering over another letter
+        let targetElement = null;
+        const letters = document.querySelectorAll('.letter:not(.dragging)');
+        
+        for (const letter of letters) {
+          const rect = letter.getBoundingClientRect();
+          const x = e.clientX;
+          const y = e.clientY;
+          
+          // Check if cursor is within the letter's boundaries
+          if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+            targetElement = letter;
+            break;
+          }
+        }
+        
+        // Clean up drag element
+        if (dragElement) {
+          document.body.removeChild(dragElement);
+          dragElement = null;
+        }
+        
+        if (draggedElement) {
+          draggedElement.classList.remove('dragging');
+        }
+        
+        // Remove document event listeners
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        
+        // If we found a target element, swap the letters
+        if (targetElement) {
+          const targetIndex = parseInt(targetElement.dataset.index);
+          swapLetters(dragIndex, targetIndex);
+        }
+        
+        isDragging = false;
+        draggedElement = null;
+        dragIndex = null;
+      }
+      
+      function swapLetters(index1, index2) {
+        if (index1 === index2) return;
+        
+        // Get the elements
+        const firstElement = document.querySelector(`.letter[data-index="${index1}"]`);
+        const secondElement = document.querySelector(`.letter[data-index="${index2}"]`);
+        
+        // Add swapping class
+        firstElement.classList.add('swapping');
+        secondElement.classList.add('swapping');
+        
+        // Get positions
+        const firstRect = firstElement.getBoundingClientRect();
+        const secondRect = secondElement.getBoundingClientRect();
+        const xDistance = secondRect.left - firstRect.left;
+        const yDistance = secondRect.top - firstRect.top;
+        
+        // Animate the swap
+        firstElement.style.transition = 'transform 0.5s ease-in-out';
+        secondElement.style.transition = 'transform 0.5s ease-in-out';
+        
+        firstElement.style.transform = `translate(${xDistance}px, ${yDistance}px)`;
+        secondElement.style.transform = `translate(${-xDistance}px, ${-yDistance}px)`;
+        
+        // Wait for animation to finish
+        setTimeout(() => {
+          // Remember current correct count
+          const oldCorrectCount = countCorrectPositions();
+          
+          // Swap letters in array
+          const lettersArray = currentString.split('');
+          [lettersArray[index1], lettersArray[index2]] = [lettersArray[index2], lettersArray[index1]];
+          currentString = lettersArray.join('');
+          
+          // Reset selection
+          document.querySelectorAll('.letter').forEach(el => {
+            el.classList.remove('selected', 'swapping');
+            el.style.transform = '';
+            el.style.transition = '';
+          });
+          
+          // Update display
+          updateDisplay();
+          
+          // Get new correct count and animate change
+          const newCorrectCount = countCorrectPositions();
+          animateCounterChange(newCorrectCount);
+          
+          // Check if won
+          if (newCorrectCount === targetString.length) {
+            createFireworks();
+          }
+        }, 500);
+      }
+      
+      // Keep the old click handler for backward compatibility
+      function handleLetterClick(e) {
+        const index = parseInt(e.target.dataset.index);
+        
+        if (firstSelected === null) {
+          firstSelected = index;
+          e.target.classList.add('selected');
+        } else {
+          if (firstSelected === index) {
+            e.target.classList.remove('selected');
+            firstSelected = null;
+            return;
+          }
+          
+          swapLetters(firstSelected, index);
+          firstSelected = null;
+        }
+      }
+  
+      function startNewGame() {
+        targetString = getRandomWord();
+        currentString = shuffleString(targetString);
+        firstSelected = null;
+        document.getElementById('win-message').style.display = 'none';
+        console.log('Target (hidden):', targetString);
+        
+        // Reset previous count
+        previousWrongCount = 0;
+        
+        // Clear target cards
+        document.getElementById('target-string').innerHTML = '';
+        
+        updateDisplay();
+        
+        // Initialize animation with starting count
+        const startingCount = countCorrectPositions();
+        previousWrongCount = startingCount;
+        // No animation on first load
+      }
+  
+      document.getElementById('new-game').addEventListener('click', startNewGame);
+      
+      // Start the game
+      startNewGame();
+    </script>
+  
+  </body></html>

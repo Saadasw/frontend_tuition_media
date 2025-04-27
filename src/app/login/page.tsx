@@ -32,6 +32,8 @@ export default function LoginPage() {
         
         // Store the token
         localStorage.setItem('token', response.data.access_token);
+        localStorage.setItem('user', email);
+        console.log(localStorage.getItem('user'));
         router.push('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred')
